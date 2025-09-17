@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dr Live Signal — Home</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/parse/dist/parse.min.js"></script>
+
+  <style>
+    :root{
+      --bg1:#030B1E; --bg2:#071A3A; --bg3:#0B2E69;
+      --c1:#00C6FF; --c2:#1E88E5; --c3:#00E5FF;
+      --accent:#E53935;
+      --ring-size:240px; --ring-thick:12px;
+      --btn1:#0088FF; --btn2:#00E5FF; --btnGlow:rgba(0,170,255,.55);
+      --ledOn:#34FFB3;
+      --liveRingSize:min(82vw, 360px); --liveThick:16px;
+      --ok:#34FFB3; --warn:#FFD54F; --err:#FF3B3B; --muted:#bcd7ffcc;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; color:#fff;
+      font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Noto Sans','Helvetica Neue',Arial,sans-serif;
+      background: radial-gradient(1000px 550px at 80% 10%, rgba(0,229,255,0.06), transparent 40%), linear-gradient(135deg,var(--bg1),var(--bg2) 55%,var(--bg3));
+      overflow:hidden;
+    }
+    .splash{position:fixed; inset:0; display:grid; place-items:center; gap:16px; z-index:3}
+    .stack{position:relative; width:var(--ring-size); height:var(--ring-size); display:grid; place-items:center; filter:drop-shadow(0 10px 36px rgba(0,90,255,.25)) drop-shadow(0 2px 18px rgba(0,180,255,.15)); contain:layout paint}
+    .ring-base,.ring-arc{position:absolute; inset:0; border-radius:50%}
+    .ring-base{background:rgba(255,255,255,.12); -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - var(--ring-thick)), #000 calc(100% - var(--ring-thick))); mask:radial-gradient(farthest-side, transparent calc(100% - var(--ring-thick)), #000 calc(100% - var(--ring-thick)))}
+    .ring-arc{background:conic-gradient(from 0deg, var(--c1) 0deg 120deg, var(--c2) 120deg 220deg, var(--c3) 220deg 300deg, transparent 300deg 360deg); -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - var(--ring-thick)), #000 calc(100% - var(--ring-thick))); mask:radial-gradient(farthest-side, transparent calc(100% - var(--ring-thick)), #000 calc(100% - var(--ring-thick))); animation:spin 1.5s linear infinite; filter:drop-shadow(0 0 12px rgba(0,214,255,.35)) drop-shadow(0 0 26px rgba(0,140,255,.25)); will-change:transform}
+    .rotor{position:absolute; inset:0; animation:spin 1.5s linear infinite; will-change:transform}
+    .ring-dot{position:absolute; left:50%; top:-6px; transform:translateX(-50%); width:12px; height:12px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 3px rgba(229,57,53,.18), 0 0 14px rgba(229,57,53,.6), 0 0 36px rgba(229,57,53,.35)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .avatar{position:relative; width:calc(var(--ring-size) - 78px); height:calc(var(--ring-size) - 78px); border-radius:50%; overflow:hidden; display:grid; place-items:center; background:rgba(255,255,255,.06); border:2px solid rgba(255,255,255,.14); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); backdrop-filter: blur(2px)}
+    .avatar img{width:100%; height:100%; object-fit:cover; display:block; filter:saturate(1.08) contrast(1.06)}
+    .avatar .tint{position:absolute; inset:0; border-radius:50%; pointer-events:none; background: radial-gradient(120% 80% at 80% 10%, rgba(0,198,255,.18), transparent 55%), linear-gradient(200deg, rgba(0,114,255,.18), rgba(0,229,255,.10)); mix-blend-mode:soft-light}
+    .avatar .gloss{position:absolute; inset:0 0 55% 0; border-radius:50% 50% 40% 40% / 50% 50% 25% 25%; background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0)); pointer-events:none}
+    .avatar .fallback{position:absolute; inset:0; display:grid; place-items:center; background:linear-gradient(135deg,#102A5C,#071A3A); color:#ffffffcc; font-weight:800; font-size:42px; letter-spacing:1px}
+    h1{margin:10px 0 2px; font:800 24px/1.1 Montserrat, Poppins, sans-serif; letter-spacing:.4px}
+    .subtitle{margin:0; color:#cfe7ff; font-size:14px; text-shadow:0 1px 12px rgba(0,120,255,.25)}
+    .bottom-wrap{position:absolute; inset-inline:0; bottom:-1px}
+    .brand-tag{position:absolute; bottom:14px; left:50%; transform:translateX(-50%); font-size:12px; color:#bcd7ffcc}
+
+    .home-app,.live-app,.admin-app,.notify-app{position:relative; z-index:0; opacity:0; pointer-events:none; transition:opacity .5s ease .1s}
+    body.loaded .splash{opacity:0; pointer-events:none; transition:opacity .4s ease}
+    body.loaded .home-app, body.mode-live .live-app, body.mode-admin .admin-app, body.mode-notify .notify-app{opacity:1; pointer-events:auto}
+    .home-app{display:grid}
+    .live-app,.admin-app,.notify-app{display:none}
+    body.mode-live .splash, body.mode-admin .splash, body.mode-notify .splash{display:none}
+    body.mode-live .home-app, body.mode-admin .home-app, body.mode-notify .home-app{display:none}
+    body.mode-live .live-app{display:grid}
+    body.mode-admin .admin-app{display:grid}
+    body.mode-notify .notify-app{display:grid}
+
+    @media (max-width:420px){
+      :root{--ring-size:200px; --ring-thick:10px}
+      .avatar{width:calc(var(--ring-size) - 68px); height:calc(var(--ring-size) - 68px)}
+    }
+
+    .cta{min-height:100vh; display:grid; place-content:start center; padding:24px; padding-top:10vh}
+    .live-wrap{position:relative; display:grid; gap:18px; place-items:center}
+    .btn-list{display:grid; gap:12px; width:min(92vw, 380px)}
+    .light-bar{position:absolute; top:-26px; left:50%; transform:translateX(-50%); display:flex; gap:12px; padding:6px 10px; border-radius:999px; background:rgba(0,40,80,.25); box-shadow:inset 0 0 0 1px rgba(0,200,255,.15), 0 10px 24px rgba(0,120,255,.12); backdrop-filter: blur(3px); z-index:2}
+    .led{width:12px; height:12px; border-radius:50%; background:radial-gradient(circle at 30% 30%, var(--ledOn), #0affa055 45%, transparent 60%); box-shadow:0 0 10px var(--ledOn), 0 0 18px rgba(52,255,179,.55); opacity:.18; transform:translateZ(0); animation:blink 1.2s infinite ease-in-out}
+    .led:nth-child(2){animation-delay:.12s} .led:nth-child(3){animation-delay:.24s} .led:nth-child(4){animation-delay:.36s} .led:nth-child(5){animation-delay:.48s} .led:nth-child(6){animation-delay:.60s}
+    @keyframes blink{0%,100%{opacity:.18;filter:saturate(.8)} 50%{opacity:1;filter:saturate(1.2) brightness(1.15)}}
+
+    .live-btn{position:relative; display:inline-grid; place-items:center; width:100%; padding:16px 36px; border-radius:16px; border:0; color:#001A2A; font:800 18px/1 Montserrat, Poppins, sans-serif; letter-spacing:1.6px; text-transform:uppercase; background:linear-gradient(135deg,var(--btn1),var(--btn2)); box-shadow:0 10px 30px var(--btnGlow), 0 2px 10px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.2); cursor:pointer; user-select:none; transition:transform .12s ease, box-shadow .2s ease; overflow:hidden}
+    .live-btn .label{position:relative; z-index:2; color:#001825}
+    .live-btn::before{content:""; position:absolute; inset:-40% -120%; background:linear-gradient(100deg, transparent 40%, rgba(255,255,255,.6) 50%, transparent 60%); transform:translateX(-60%) rotate(12deg); animation:shine 2.2s linear infinite; mix-blend-mode:screen; pointer-events:none}
+    @keyframes shine { to{ transform:translateX(60%) rotate(12deg);} }
+    .live-btn .pulse{content:""; position:absolute; inset:-10px; border-radius:18px; z-index:1; pointer-events:none; box-shadow:0 0 0 0 rgba(0,214,255,.35); animation:pulse 2.4s ease-out infinite}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,214,255,.35)} 70%{box-shadow:0 0 0 16px rgba(0,214,255,0)} 100%{box-shadow:0 0 0 0 rgba(0,214,255,0)}}
+    .live-btn:active{ transform:translateY(1px) scale(.99) }
+
+    .btn-row{display:grid; grid-template-columns: 1fr auto; gap:12px; align-items:stretch}
+    .notify-btn{position:relative; display:inline-grid; place-items:center; gap:4px; padding:8px 12px; border-radius:12px; border:0; background:linear-gradient(135deg,var(--btn1),var(--btn2)); color:#001825; font:700 13px/1 Poppins, sans-serif; letter-spacing:.4px; box-shadow:0 6px 18px var(--btnGlow), inset 0 0 0 1px rgba(255,255,255,.25); cursor:pointer; user-select:none; min-width:92px; min-height:40px}
+    .notify-badge{position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 6px; border-radius:999px; display:inline-grid; place-items:center; background:#ff2d55; color:#fff; font:700 12px/1 Poppins; box-shadow:0 0 0 2px rgba(0,0,0,.25), 0 6px 12px rgba(255,45,85,.35)}
+    .notify-badge.hidden{display:none}
+
+    .live-app{display:none; min-height:100vh; padding:20px; place-content:center; gap:22px; text-align:center}
+    .live-title{font:800 22px/1.2 Montserrat; letter-spacing:.6px; padding:.6rem 1rem; border-radius:12px; background:#0A0F1C; box-shadow:0 10px 30px rgba(0,150,255,.12), inset 0 0 0 1px rgba(255,255,255,.08); margin:0 auto}
+    .clock-top{ font:700 22px/1 Montserrat; opacity:.95; letter-spacing:.5px; margin:0 auto }
+    .ring-wrap{position:relative; width:var(--liveRingSize); height:var(--liveRingSize); display:grid; place-items:center; margin-inline:auto; contain:layout paint}
+    .ring-blue{position:absolute; inset:0; border-radius:50%; background:conic-gradient(#00E5FF, #1E88E5, #00C6FF, #00E5FF); -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - var(--liveThick)), #000 0); mask:radial-gradient(farthest-side, transparent calc(100% - var(--liveThick)), #000 0); filter: drop-shadow(0 0 12px rgba(0,214,255,.7)) drop-shadow(0 0 34px rgba(0,160,255,.45)) drop-shadow(0 0 70px rgba(0,130,255,.35))}
+    .ring-blue::after{content:""; position:absolute; inset:-2px; border-radius:50%; background:conic-gradient(from 0deg, transparent 0deg 330deg, rgba(0,255,255,.9) 345deg, transparent 360deg); -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - var(--liveThick) - 2px), #000 0); mask:radial-gradient(farthest-side, transparent calc(100% - var(--liveThick) - 2px), #000 0); animation:spin 2.2s linear infinite; filter: drop-shadow(0 0 10px rgba(0,240,255,.9)) drop-shadow(0 0 24px rgba(0,200,255,.6))}
+    .aura{position:absolute; inset:-20px; border-radius:50%; box-shadow:0 0 60px 18px rgba(0,180,255,.16); animation:aura 2.6s ease-in-out infinite}
+    @keyframes aura{50%{box-shadow:0 0 80px 28px rgba(0,180,255,.28)}}
+    .clock-center{position:relative; z-index:3; font:800 22px/1.3 Montserrat; color:#FF3B3B; text-shadow:0 0 10px rgba(255,0,0,.55); letter-spacing:.6px; user-select:none; white-space:pre-line; padding:0 .4rem}
+    .clock-center.status-normal{ color:var(--ok); text-shadow:0 0 10px rgba(52,255,179,.45) }
+    .clock-center.status-wait{ color:var(--warn); text-shadow:0 0 10px rgba(255,213,79,.45) }
+    .clock-center.status-error{ color:var(--err); text-shadow:0 0 10px rgba(255,0,0,.55) }
+    .back{margin-top:10px; display:inline-block; padding:10px 14px; border-radius:12px; border:0; background:linear-gradient(135deg,#1583ff,#35e0ff); color:#001A2A; font:700 14px/1 Poppins; letter-spacing:.6px; box-shadow:0 8px 24px rgba(0,170,255,.45), inset 0 0 0 1px rgba(255,255,255,.25); text-decoration:none; width:max-content; margin-inline:auto}
+
+    .admin-app{min-height:100vh; padding:20px; place-content:center; gap:18px; text-align:center}
+    .admin-card{width:min(92vw, 520px); margin-inline:auto; background:#0A0F1C; border-radius:16px; box-shadow:0 10px 30px rgba(0,150,255,.12), inset 0 0 0 1px rgba(255,255,255,.08); padding:18px; display:grid; gap:14px}
+    .admin-title{font:800 22px/1.2 Montserrat; margin:0}
+    .pin-wrap,.admin-form{display:grid; gap:12px}
+    .input, .select, textarea{width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:#06152f; color:#e7f3ff; font:600 14px/1.2 Poppins; outline:none}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .site-group{display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
+    .toggle{padding:8px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.16); background:#071a3a; color:#cfe7ff; cursor:pointer; font:700 13px/1 Poppins}
+    .toggle.active{background:linear-gradient(135deg,var(--btn1),var(--btn2)); color:#001825; border-color:transparent}
+    .admin-actions{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
+    .btn{padding:10px 14px; border-radius:12px; border:0; cursor:pointer; font:700 14px/1 Poppins; letter-spacing:.4px; background:linear-gradient(135deg,#1583ff,#35e0ff); color:#001825; box-shadow:0 8px 24px rgba(0,170,255,.35), inset 0 0 0 1px rgba(255,255,255,.2)}
+    .btn.warn{ background:linear-gradient(135deg,#ffb300,#ffe082); color:#2a1900 }
+    .btn.danger{ background:linear-gradient(135deg,#ff5252,#ff8a80); color:#2a0000 }
+    .hint{font-size:12px; color:var(--muted)}
+
+    .notify-app{min-height:100vh; padding:20px; place-content:center; gap:18px; text-align:center}
+    .notify-card{width:min(92vw, 520px); background:#0A0F1C; border-radius:16px; box-shadow:0 10px 30px rgba(0,150,255,.12), inset 0 0 0 1px rgba(255,255,255,.08); padding:16px; display:grid; gap:12px; margin-inline:auto}
+    .notify-list{display:grid; gap:10px; max-height:50vh; overflow:auto; padding-right:6px}
+    .note{text-align:left; background:#071a3a; border-radius:12px; padding:10px 12px; border:1px solid rgba(255,255,255,.08)}
+    .note .t{font:700 13px/1.2 Poppins; color:#e7f3ff}
+    .note .m{font:600 12px/1.4 Poppins; color:#cfe7ff; margin-top:4px; white-space:pre-wrap}
+    .note .meta{font:600 11px/1.2 Poppins; color:#98b6d8; margin-top:6px}
+
+    .online-pill{position:fixed; top:10px; right:12px; z-index:4; display:none; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background:linear-gradient(135deg,#0bbf5f,#1df28a); color:#001b12; font:800 12px/1 Montserrat; letter-spacing:.6px; box-shadow:0 8px 22px rgba(24,212,109,.35), inset 0 0 0 1px rgba(255,255,255,.25)}
+    body.loaded .online-pill{ display:flex; }
+    .dot{width:8px; height:8px; border-radius:50%; background:#00ff88; box-shadow:0 0 12px #00ff88}
+
+    @media (prefers-reduced-motion: reduce){
+      .ring-arc,.rotor,.live-btn::before,.live-btn .pulse,.led,.ring-blue::after,.aura{animation:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="online-pill" id="onlinePill" aria-live="polite"><span class="dot"></span><span id="onlineCount">Online 0</span></div>
+
+  <div class="splash" role="status" aria-live="polite">
+    <div class="stack">
+      <div class="ring-base"></div><div class="ring-arc"></div><div class="rotor"><div class="ring-dot"></div></div>
+      <div class="avatar" id="avatar">
+        <img id="logoImg" alt="Aviator image"><div class="tint"></div><div class="gloss"></div><div class="fallback" id="fallback">DLS</div>
+      </div>
+    </div>
+    <h1>Dr Live Signal</h1>
+    <p class="subtitle">Aviator loading…</p>
+    <div class="bottom-wrap" aria-hidden="true">
+      <svg class="wave" viewBox="0 0 1440 320" width="100%" height="120" preserveAspectRatio="none">
+        <defs><linearGradient id="blueWave" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00C6FF" stop-opacity=".35"/><stop offset="50%" stop-color="#1E88E5" stop-opacity=".35"/><stop offset="100%" stop-color="#00E5FF" stop-opacity=".35"/></linearGradient></defs>
+        <path fill="url(#blueWave)" d="M0,192L48,176C96,160,192,128,288,106.7C384,85,480,75,576,106.7C672,139,768,213,864,229.3C960,245,1056,203,1152,186.7C1248,171,1344,181,1392,186.7L1440,192L1440,320L0,320Z"/>
+      </svg>
+      <div class="brand-tag">Powered by Dr Live Signal</div>
+    </div>
+  </div>
+
+  <!-- Home -->
+  <main class="home-app">
+    <section class="cta">
+      <div class="live-wrap">
+        <div class="light-bar" aria-hidden="true"><span class="led"></span><span class="led"></span><span class="led"></span><span class="led"></span><span class="led"></span><span class="led"></span></div>
+        <div class="btn-list">
+          <div class="btn-row">
+            <button class="live-btn" id="btn1x" type="button"><span class="pulse"></span><span class="label">1X LIVE</span></button>
+            <button class="notify-btn" id="notifyBtn" type="button"><span class="bell">🔔</span><span>Notify</span><span class="notify-badge hidden" id="notifyBadge">0</span></button>
+          </div>
+          <button class="live-btn" id="btnMelbet" type="button"><span class="pulse"></span><span class="label">MELBET LIVE</span></button>
+          <button class="live-btn" id="btn888" type="button"><span class="pulse"></span><span class="label">888 Strz Live</span></button>
+          <button class="live-btn" id="btnPari" type="button"><span class="pulse"></span><span class="label">Pari pules Live</span></button>
+          <button class="live-btn" id="btnDeposit" type="button"><span class="pulse"></span><span class="label">DEPOSIT</span></button>
+          <button class="live-btn" id="btnAdmin" type="button"><span class="pulse"></span><span class="label">ADMIN TEAM</span></button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Live -->
+  <main class="live-app" id="liveApp">
+    <div class="live-title" id="liveTitle">LIVE</div>
+    <div class="clock-top" id="clockTop">--:--:--</div>
+    <div class="ring-wrap" aria-hidden="true">
+      <div class="aura"></div><div class="ring-blue"></div>
+      <div class="clock-center" id="clockCenter">--:--:--</div>
+    </div>
+    <a class="back" id="backLink" href="#">← Back</a>
+  </main>
+
+  <!-- Admin -->
+  <main class="admin-app" id="adminApp">
+    <div class="admin-card">
+      <h2 class="admin-title">Admin Panel</h2>
+      <div class="pin-wrap" id="pinWrap">
+        <input class="input" id="pinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Enter PIN">
+        <button class="btn" id="pinSubmit" type="button">Enter</button>
+      </div>
+      <div class="admin-form" id="adminForm" style="display:none">
+        <div class="site-group" id="siteGroup" role="group" aria-label="Choose site">
+          <button type="button" class="toggle active" data-site="1xbet">1xbet</button>
+          <button type="button" class="toggle" data-site="888">888</button>
+          <button type="button" class="toggle" data-site="melbet">melbet</button>
+          <button type="button" class="toggle" data-site="paripule">paripule</button>
+        </div>
+        <div class="row">
+          <input class="input" id="admTime" type="time" step="1" placeholder="HH:MM:SS">
+          <input class="input" id="admSignal" type="text" placeholder="Signal text">
+        </div>
+        <div class="admin-actions">
+          <button class="btn" id="btnUpload" type="button">Upload</button>
+          <button class="btn warn" id="btnWait" type="button">Wait</button>
+          <button class="btn danger" id="btnError" type="button">Error</button>
+        </div>
+        <hr style="border-color:rgba(255,255,255,.08)">
+        <div class="row">
+          <input class="input" id="admNotify" type="text" placeholder="Notify message">
+          <button class="btn" id="btnSendNotify" type="button">Send</button>
+        </div>
+        <a class="back" id="backFromAdmin" href="#">← Back</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Notify -->
+  <main class="notify-app" id="notifyApp">
+    <div class="notify-card">
+      <h2 class="admin-title">Notifications</h2>
+      <div class="notify-list" id="notifyList"></div>
+      <div class="hint">මෙතන දැක්කම unread count reset වෙනවා.</div>
+      <div class="admin-actions" style="justify-content:space-between">
+        <button class="btn" id="btnEnablePush" type="button">Enable Push</button>
+        <a class="back" id="backFromNotify" href="#">← Back</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ========= Parse Config (Back4App) =========
+    const PARSE_APP_ID = '1VmZKuMW0kIckcTTwaTf6rGe1JrXCHNa0TjPQfS5';
+    const PARSE_JS_KEY = 'IltR97exSvdKlaPsNOXhBqaKFAl7zV4tBCGc6pEh';
+    const PARSE_SERVER_URL = 'https://parseapi.back4app.com';
+    const PARSE_LIVEQUERY_URL = `wss://${PARSE_APP_ID}.b4a.io`; // auto
+    Parse.initialize(PARSE_APP_ID, PARSE_JS_KEY);
+    Parse.serverURL = PARSE_SERVER_URL;
+    Parse.liveQueryServerURL = PARSE_LIVEQUERY_URL;
+
+    // ========= UI base =========
+    const LOGO_SRC = 'LOGO_URL_OR_FILE_HERE';
+    const BRAND_INITIALS = 'DLS';
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const params = new URLSearchParams(location.search);
+    const initialView = params.get('view') || 'home';
+    const initialLabel = params.get('t') || 'LIVE';
+
+    const img = document.getElementById('logoImg');
+    const fallback = document.getElementById('fallback');
+    if (fallback) fallback.textContent = BRAND_INITIALS;
+    function showFallback(){ if (fallback) fallback.style.display = 'grid'; }
+    function hideFallback(){ if (fallback) fallback.style.display = 'none'; }
+    if (img){
+      if (LOGO_SRC && LOGO_SRC !== 'LOGO_URL_OR_FILE_HERE') img.src = LOGO_SRC; else showFallback();
+      img.addEventListener('error', showFallback); img.addEventListener('load', hideFallback);
+    }
+
+    const onlineEl = document.getElementById('onlineCount');
+    function randomOnline(){ return Math.floor(250 + Math.random() * (750 - 250 + 1)); }
+    function updateOnline(){ if (onlineEl) onlineEl.textContent = 'Online ' + randomOnline(); }
+    setInterval(updateOnline, 10000);
+
+    const topEl = document.getElementById('clockTop');
+    const centerEl = document.getElementById('clockCenter');
+    let clockTimerId = null, centerMode='clock';
+    function formatLK(){ return new Date().toLocaleTimeString('si-LK',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Colombo'}); }
+    function startClock(){ function render(){ const s=formatLK(); if(topEl) topEl.textContent=s; if(centerEl && centerMode==='clock') centerEl.textContent=s; const ms=1000-new Date().getMilliseconds(); clockTimerId=setTimeout(render, prefersReducedMotion?1000:ms+5);} render(); }
+    function stopClock(){ if (clockTimerId){ clearTimeout(clockTimerId); clockTimerId=null; } }
+
+    // State
+    const SITES=['1xbet','888','melbet','paripule'];
+    const labelToKey={'1X LIVE':'1xbet','MELBET LIVE':'melbet','888 Strz Live':'888','Pari pules Live':'paripule'};
+    const keyToLabel=Object.fromEntries(Object.entries(labelToKey).map(([k,v])=>[v,k]));
+    let states={'1xbet':{},'888':{},'melbet':{},'paripule':{}};
+    let notes=[];
+    let currentLiveLabel='LIVE', currentSiteKey=null;
+
+    // Routing
+    const liveTitleEl = document.getElementById('liveTitle');
+    function setDocTitle(s){ document.title='Dr Live Signal — '+s; }
+    function enterLive(label='LIVE'){ document.body.classList.remove('mode-admin','mode-notify'); document.body.classList.add('mode-live','loaded'); updateOnline(); currentLiveLabel=label; if(liveTitleEl) liveTitleEl.textContent=label; currentSiteKey=labelToKey[label]||null; setDocTitle(label); stopClock(); startClock(); renderLiveForCurrentSite(); }
+    function exitLive(){ document.body.classList.remove('mode-live'); setDocTitle('Home'); stopClock(); centerMode='clock'; if(centerEl){ centerEl.className='clock-center'; centerEl.textContent='--:--:--'; } }
+    function enterAdmin(){ document.body.classList.remove('mode-live','mode-notify'); document.body.classList.add('mode-admin','loaded'); updateOnline(); setDocTitle('Admin'); stopClock(); adminAuth=false; showPinGate(true); }
+    function exitAdmin(){ document.body.classList.remove('mode-admin'); setDocTitle('Home'); adminAuth=false; }
+    function enterNotify(){ document.body.classList.remove('mode-live','mode-admin'); document.body.classList.add('mode-notify','loaded'); updateOnline(); setDocTitle('Notifications'); stopClock(); setUnread(0); setLastSeen(Date.now()); renderNotifyList(); }
+    function exitNotify(){ document.body.classList.remove('mode-notify'); setDocTitle('Home'); }
+    function pushRoute(view,label){ const url=new URL(window.location.pathname, window.location); if(view==='live'){url.searchParams.set('view','live'); if(label) url.searchParams.set('t',label);} else if(view==='admin'){url.searchParams.set('view','admin');} else if(view==='notify'){url.searchParams.set('view','notify');} history.pushState({view,t:label},'',url.toString()); }
+    function navigate(view,label,push=true){ if(view==='live') enterLive(label); else if(view==='admin') enterAdmin(); else if(view==='notify') enterNotify(); else { exitLive(); exitAdmin(); exitNotify(); } if(push) pushRoute(view,label); }
+    document.getElementById('backLink')?.addEventListener('click',e=>{e.preventDefault(); navigate('home');});
+    document.getElementById('backFromAdmin')?.addEventListener('click',e=>{e.preventDefault(); navigate('home');});
+    document.getElementById('backFromNotify')?.addEventListener('click',e=>{e.preventDefault(); navigate('home');});
+    document.getElementById('btn1x')?.addEventListener('click',()=>navigate('live','1X LIVE',true));
+    document.getElementById('btnMelbet')?.addEventListener('click',()=>navigate('live','MELBET LIVE',true));
+    document.getElementById('btn888')?.addEventListener('click',()=>navigate('live','888 Strz Live',true));
+    document.getElementById('btnPari')?.addEventListener('click',()=>navigate('live','Pari pules Live',true));
+    document.getElementById('btnAdmin')?.addEventListener('click',()=>navigate('admin',undefined,true));
+    document.getElementById('notifyBtn')?.addEventListener('click',()=>navigate('notify',undefined,true));
+
+    // Deposit
+    const openSafe=url=>{ const w=window.open(url,'_blank','noopener,noreferrer'); if(w) w.opener=null; };
+    document.getElementById('btnDeposit')?.addEventListener('click',()=>{ const message='Hello, please share deposit details.'; const waURL=`https://wa.me/94758820091?text=${encodeURIComponent(message)}`; openSafe(waURL); });
+
+    // Notify unread (local)
+    const notifyBadge=document.getElementById('notifyBadge');
+    const LS_UNREAD='dls_unread', LS_LASTSEEN='dls_notify_lastseen';
+    function getUnread(){ return Number(localStorage.getItem(LS_UNREAD)||0); }
+    function setUnread(n){ localStorage.setItem(LS_UNREAD,String(n)); renderNotifyBadge(); }
+    function incUnread(){ setUnread(getUnread()+1); }
+    function getLastSeen(){ return Number(localStorage.getItem(LS_LASTSEEN)||0); }
+    function setLastSeen(ts){ localStorage.setItem(LS_LASTSEEN,String(ts)); }
+    function renderNotifyBadge(){ const n=getUnread(); if(!notifyBadge) return; if(n>0){ notifyBadge.textContent=n; notifyBadge.classList.remove('hidden'); } else { notifyBadge.textContent='0'; notifyBadge.classList.add('hidden'); } }
+    renderNotifyBadge();
+
+    // Admin PIN
+    const pinWrap=document.getElementById('pinWrap'), adminForm=document.getElementById('adminForm'), pinInput=document.getElementById('pinInput'), pinSubmit=document.getElementById('pinSubmit'); let adminAuth=false; const ADMIN_PIN='522622';
+    function showPinGate(show){ if(show){ pinWrap.style.display='grid'; adminForm.style.display='none'; pinInput.value=''; } else { pinWrap.style.display='none'; adminForm.style.display='grid'; } }
+    pinSubmit?.addEventListener('click',()=>{ if(pinInput.value===ADMIN_PIN){ adminAuth=true; showPinGate(false);} else alert('Wrong PIN'); });
+
+    // Admin site selector
+    const siteGroup=document.getElementById('siteGroup'); let adminSite='1xbet';
+    siteGroup?.addEventListener('click',e=>{ const btn=e.target.closest('.toggle'); if(!btn) return; siteGroup.querySelectorAll('.toggle').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); adminSite=btn.dataset.site; });
+
+    // Admin inputs
+    const timeInput=document.getElementById('admTime'); const sigInput=document.getElementById('admSignal');
+
+    // Parse helpers (ensure Public read for test)
+    async function upsertSiteState(site,data){
+      const SiteState=Parse.Object.extend('SiteState');
+      const q=new Parse.Query(SiteState); q.equalTo('site',site);
+      const obj=await q.first(); const record=obj||new SiteState(); if(!obj) record.set('site',site);
+      record.set('status',data.status); record.set('time',data.time||null); record.set('signal',data.signal||null);
+      // public read ACL (test). Tighten in prod.
+      const acl = record.getACL() || new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); record.setACL(acl);
+      return record.save();
+    }
+    async function sendNotificationMsg(message){
+      const Notification=Parse.Object.extend('Notification'); const n=new Notification();
+      n.set('message',message);
+      const acl = new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); n.setACL(acl);
+      return n.save();
+    }
+
+    async function fetchSiteStates(){
+      const q=new Parse.Query('SiteState'); q.containedIn('site',SITES); q.limit(100);
+      const res=await q.find(); const next={'1xbet':{},'888':{},'melbet':{},'paripule':{}};
+      res.forEach(o=>{ const site=o.get('site'); next[site]={ status:o.get('status')||'normal', time:o.get('time')||'', signal:o.get('signal')||'' }; });
+      states=next; renderLiveForCurrentSite();
+    }
+    async function fetchNotifications(){
+      const q=new Parse.Query('Notification'); q.descending('createdAt'); q.limit(50);
+      const res=await q.find(); notes=res.map(o=>({msg:o.get('message')||'', ts:o.createdAt}));
+      const lastSeen=getLastSeen(); const unread=notes.filter(n=>n.ts && n.ts.getTime()>lastSeen).length; setUnread(unread);
+      if(document.body.classList.contains('mode-notify')) renderNotifyList();
+    }
+
+    // Realtime – LiveQuery + auto-retry + fallback polling + BroadcastChannel
+    let lqConnected=false, siteSub=null, noteSub=null;
+    const poll = { site:null, note:null };
+    const bc = ('BroadcastChannel' in window) ? new BroadcastChannel('dls-realtime') : null;
+    function startPolling(){ if(!poll.site) poll.site=setInterval(fetchSiteStates, 2000); if(!poll.note) poll.note=setInterval(fetchNotifications, 4000); }
+    function stopPolling(){ if(poll.site){clearInterval(poll.site); poll.site=null;} if(poll.note){clearInterval(poll.note); poll.note=null;} }
+
+    Parse.LiveQuery.on('open', ()=>{ lqConnected=true; stopPolling(); });
+    Parse.LiveQuery.on('close', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
+    Parse.LiveQuery.on('error', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
+
+    let resubTimer=null;
+    function resubscribeLater(){ if(resubTimer) return; resubTimer=setTimeout(()=>{ resubTimer=null; setupRealtime(true); }, 3000); }
+
+    async function setupRealtime(retry=false){
+      try{
+        // Unsubscribe old (if any)
+        await siteSub?.unsubscribe(); await noteSub?.unsubscribe();
+      }catch(e){}
+      try{
+        const siteQuery=new Parse.Query('SiteState'); siteQuery.containedIn('site',SITES);
+        siteSub=await siteQuery.subscribe();
+        siteSub.on('open', ()=>{ lqConnected=true; stopPolling(); });
+        siteSub.on('create', handleSiteObject);
+        siteSub.on('update', handleSiteObject);
+        siteSub.on('enter',  handleSiteObject);
+        siteSub.on('delete', obj=>{ const site=obj.get('site'); if(site){ states[site]={}; if(site===currentSiteKey) renderLiveForCurrentSite(); }});
+        siteSub.on('close', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
+        siteSub.on('error', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
+
+        const noteQuery=new Parse.Query('Notification');
+        noteSub=await noteQuery.subscribe();
+        noteSub.on('open', ()=>{ lqConnected=true; stopPolling(); });
+        noteSub.on('create', handleNotificationObj);
+        noteSub.on('close', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
+        noteSub.on('error', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
+
+        // If we still don't get an open in 3s, start polling
+        setTimeout(()=>{ if(!lqConnected) startPolling(); }, 3000);
+      }catch(err){
+        // LiveQuery failed -> fallback
+        startPolling();
+        if (!retry) resubscribeLater();
+      }
+    }
+
+    function handleSiteObject(obj){
+      const site=obj.get('site'); if(!site) return;
+      states[site]={ status:obj.get('status')||'normal', time:obj.get('time')||'', signal:obj.get('signal')||'' };
+      if(site===currentSiteKey) renderLiveForCurrentSite();
+    }
+    function handleNotificationObj(obj){
+      const msg=obj.get('message')||''; const ts=obj.createdAt||new Date();
+      notes.unshift({msg, ts});
+      if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); }
+      else incUnread();
+    }
+
+    // BroadcastChannel (instant same-origin tabs)
+    bc?.addEventListener('message', ev=>{
+      const d=ev.data||{};
+      if(d.type==='site' && d.site){
+        states[d.site]={ status:d.data.status, time:d.data.time||'', signal:d.data.signal||'' };
+        if(d.site===currentSiteKey) renderLiveForCurrentSite();
+      }
+      if(d.type==='note' && d.msg){
+        const item={ msg:d.msg, ts:new Date() };
+        notes.unshift(item);
+        if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); }
+        else incUnread();
+      }
+    });
+
+    // Admin actions
+    document.getElementById('btnUpload')?.addEventListener('click', async()=>{
+      if(!adminAuth) return alert('Enter PIN');
+      const t=timeInput.value||'--:--:--'; const s=(sigInput.value||'').trim();
+      try{
+        await upsertSiteState(adminSite,{status:'normal',time:t,signal:s});
+        // Local instant update
+        states[adminSite]={status:'normal',time:t,signal:s};
+        if(adminSite===currentSiteKey) renderLiveForCurrentSite();
+        bc?.postMessage({type:'site', site:adminSite, data:{status:'normal',time:t,signal:s}});
+        alert('Uploaded');
+      }catch(e){ console.error(e); alert('Upload failed'); }
+    });
+    document.getElementById('btnError')?.addEventListener('click', async()=>{
+      if(!adminAuth) return alert('Enter PIN');
+      try{
+        await upsertSiteState(adminSite,{status:'error'});
+        states[adminSite]={status:'error',time:'',signal:''};
+        if(adminSite===currentSiteKey) renderLiveForCurrentSite();
+        bc?.postMessage({type:'site', site:adminSite, data:{status:'error'}});
+        alert('Set ERROR');
+      }catch(e){ console.error(e); alert('Error set failed'); }
+    });
+    document.getElementById('btnWait')?.addEventListener('click', async()=>{
+      if(!adminAuth) return alert('Enter PIN');
+      try{
+        await upsertSiteState(adminSite,{status:'wait'});
+        states[adminSite]={status:'wait',time:'',signal:''};
+        if(adminSite===currentSiteKey) renderLiveForCurrentSite();
+        bc?.postMessage({type:'site', site:adminSite, data:{status:'wait'}});
+        alert('Set WAIT');
+      }catch(e){ console.error(e); alert('Wait set failed'); }
+    });
+    document.getElementById('btnSendNotify')?.addEventListener('click', async()=>{
+      if(!adminAuth) return alert('Enter PIN');
+      const msg=(document.getElementById('admNotify').value||'').trim(); if(!msg) return alert('Type a message');
+      try{
+        await sendNotificationMsg(msg);
+        document.getElementById('admNotify').value='';
+        // Local instant + Broadcast
+        notes.unshift({msg, ts:new Date()});
+        if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); } else incUnread();
+        bc?.postMessage({type:'note', msg});
+        alert('Notification sent');
+      }catch(e){ console.error(e); alert('Send failed'); }
+    });
+
+    // Notify page
+    document.getElementById('btnEnablePush')?.addEventListener('click', async()=>{
+      try{
+        if(!('Notification' in window)) return alert('Notifications are not supported on this browser.');
+        if(!isSecureContext) return alert('Please use HTTPS to enable notifications.');
+        let perm=Notification.permission; if(perm==='default') perm=await Notification.requestPermission();
+        if(perm==='granted') new Notification('Push enabled',{ body:'You will receive live updates.' });
+        else if(perm==='denied') alert('Notifications are blocked in browser settings.');
+      }catch(e){ console.error(e); }
+    });
+    function renderNotifyList(){
+      const wrap=document.getElementById('notifyList'); if(!wrap) return;
+      wrap.innerHTML = notes.length ? '' : '<div class="note"><div class="t">No notifications</div></div>';
+      for(const it of notes){
+        const dt=it.ts? new Date(it.ts).toLocaleString('si-LK') : '';
+        const el=document.createElement('div'); el.className='note';
+        el.innerHTML = `<div class="t">Notify</div><div class="m">${escapeHtml(it.msg)}</div><div class="meta">${dt}</div>`;
+        wrap.appendChild(el);
+      }
+    }
+
+    // Live ring
+    function renderLiveForCurrentSite(){
+      const el=centerEl; if(!el) return; el.className='clock-center';
+      const key=currentSiteKey; const st=key?(states[key]||{}):{};
+      if(!key || Object.keys(st).length===0){ centerMode='clock'; el.textContent='--:--:--'; return; }
+      if(st.status==='error'){ centerMode='message'; el.classList.add('status-error'); el.textContent='System Error'; }
+      else if(st.status==='wait'){ centerMode='message'; el.classList.add('status-wait'); el.textContent='Next Signal Wait'; }
+      else{ centerMode='message'; el.classList.add('status-normal'); const tt=st.time||'--:--:--'; const ss=st.signal||''; el.textContent=`${tt}\n${ss}`; }
+    }
+    function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s])); }
+
+    // Initial route + data
+    async function initData(){ await fetchSiteStates(); await fetchNotifications(); await setupRealtime(); }
+    const isLiveView=initialView==='live', isAdminView=initialView==='admin', isNotifyView=initialView==='notify';
+    if(isLiveView){ enterLive(initialLabel); document.body.classList.add('loaded'); history.replaceState({view:'live',t:initialLabel},'',window.location.href); }
+    else if(isAdminView){ enterAdmin(); document.body.classList.add('loaded'); history.replaceState({view:'admin'},'',window.location.href); }
+    else if(isNotifyView){ enterNotify(); document.body.classList.add('loaded'); history.replaceState({view:'notify'},'',window.location.href); }
+    else{ const splashDelay=window.matchMedia('(prefers-reduced-motion: reduce)').matches?800:2400; setTimeout(()=>{ document.body.classList.add('loaded'); updateOnline(); document.getElementById('btn1x')?.focus({preventScroll:true}); }, splashDelay); history.replaceState({view:'home'},'',window.location.pathname); }
+    window.addEventListener('popstate',e=>{ const st=e.state; if(st?.view==='live') enterLive(st.t||'LIVE'); else if(st?.view==='admin') enterAdmin(); else if(st?.view==='notify') enterNotify(); else { exitLive(); exitAdmin(); exitNotify(); } });
+    initData();
+  </script>
+</body>
+</html>
