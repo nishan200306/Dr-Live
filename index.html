@@ -29,7 +29,7 @@
       background: radial-gradient(1000px 550px at 80% 10%, rgba(0,229,255,0.06), transparent 40%), linear-gradient(135deg,var(--bg1),var(--bg2) 55%,var(--bg3));
       overflow:hidden;
     }
-    .splash{position:fixed; inset:0; display:grid; place-items:center; gap:16px; z-index:3}
+    .splash{position:fixed; inset:0; display:grid; place-items:center; gap:16px; z-index:10}
     .stack{position:relative; width:var(--ring-size); height:var(--ring-size); display:grid; place-items:center; filter:drop-shadow(0 10px 36px rgba(0,90,255,.25)) drop-shadow(0 2px 18px rgba(0,180,255,.15)); contain:layout paint}
     .ring-base,.ring-arc{position:absolute; inset:0; border-radius:50%}
     .ring-base{background:rgba(255,255,255,.12); -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - var(--ring-thick)), #000 calc(100% - var(--ring-thick))); mask:radial-gradient(farthest-side, transparent calc(100% - var(--ring-thick)), #000 calc(100% - var(--ring-thick)))}
@@ -47,9 +47,10 @@
     .bottom-wrap{position:absolute; inset-inline:0; bottom:-1px}
     .brand-tag{position:absolute; bottom:14px; left:50%; transform:translateX(-50%); font-size:12px; color:#bcd7ffcc}
 
+    /* --- App Visibility States --- */
     .home-app,.live-app,.admin-app,.notify-app{position:relative; z-index:0; opacity:0; pointer-events:none; transition:opacity .5s ease .1s}
     body.loaded .splash{opacity:0; pointer-events:none; transition:opacity .4s ease}
-    body.loaded .home-app, body.mode-live .live-app, body.mode-admin .admin-app, body.mode-notify .notify-app{opacity:1; pointer-events:auto}
+    body.unlocked .home-app, body.mode-live .live-app, body.mode-admin .admin-app, body.mode-notify .notify-app{opacity:1; pointer-events:auto}
     .home-app{display:grid}
     .live-app,.admin-app,.notify-app{display:none}
     body.mode-live .splash, body.mode-admin .splash, body.mode-notify .splash{display:none}
@@ -57,12 +58,18 @@
     body.mode-live .live-app{display:grid}
     body.mode-admin .admin-app{display:grid}
     body.mode-notify .notify-app{display:grid}
+    @media (max-width:420px){:root{--ring-size:200px; --ring-thick:10px} .avatar{width:calc(var(--ring-size) - 68px); height:calc(var(--ring-size) - 68px)}}
+    
+    /* --- NEW: User PIN Gate --- */
+    .user-pin-gate { position: fixed; inset: 0; z-index: 9; display: none; place-items: center; background: var(--bg1); }
+    .user-pin-gate.visible { display: grid; }
+    .user-pin-card { display: grid; gap: 16px; padding: 24px; background: #0A0F1C; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,150,255,.12), inset 0 0 0 1px rgba(255,255,255,.08); width: min(90vw, 320px); text-align: center; }
+    .user-pin-card h2 { margin: 0; font: 800 20px/1.2 Montserrat; }
+    .user-pin-card .input { text-align: center; font-size: 18px; letter-spacing: 4px; }
+    .user-pin-card.shake { animation: shake 0.5s ease-in-out; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 50%, 90% { transform: translateX(-8px); } 30%, 70% { transform: translateX(8px); } }
 
-    @media (max-width:420px){
-      :root{--ring-size:200px; --ring-thick:10px}
-      .avatar{width:calc(var(--ring-size) - 68px); height:calc(var(--ring-size) - 68px)}
-    }
-
+    /* --- Home Screen --- */
     .cta{min-height:100vh; display:grid; place-content:start center; padding:24px; padding-top:10vh}
     .live-wrap{position:relative; display:grid; gap:18px; place-items:center}
     .btn-list{display:grid; gap:12px; width:min(92vw, 380px)}
@@ -70,7 +77,6 @@
     .led{width:12px; height:12px; border-radius:50%; background:radial-gradient(circle at 30% 30%, var(--ledOn), #0affa055 45%, transparent 60%); box-shadow:0 0 10px var(--ledOn), 0 0 18px rgba(52,255,179,.55); opacity:.18; transform:translateZ(0); animation:blink 1.2s infinite ease-in-out}
     .led:nth-child(2){animation-delay:.12s} .led:nth-child(3){animation-delay:.24s} .led:nth-child(4){animation-delay:.36s} .led:nth-child(5){animation-delay:.48s} .led:nth-child(6){animation-delay:.60s}
     @keyframes blink{0%,100%{opacity:.18;filter:saturate(.8)} 50%{opacity:1;filter:saturate(1.2) brightness(1.15)}}
-
     .live-btn{position:relative; display:inline-grid; place-items:center; width:100%; padding:16px 36px; border-radius:16px; border:0; color:#001A2A; font:800 18px/1 Montserrat, Poppins, sans-serif; letter-spacing:1.6px; text-transform:uppercase; background:linear-gradient(135deg,var(--btn1),var(--btn2)); box-shadow:0 10px 30px var(--btnGlow), 0 2px 10px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.2); cursor:pointer; user-select:none; transition:transform .12s ease, box-shadow .2s ease; overflow:hidden}
     .live-btn .label{position:relative; z-index:2; color:#001825}
     .live-btn::before{content:""; position:absolute; inset:-40% -120%; background:linear-gradient(100deg, transparent 40%, rgba(255,255,255,.6) 50%, transparent 60%); transform:translateX(-60%) rotate(12deg); animation:shine 2.2s linear infinite; mix-blend-mode:screen; pointer-events:none}
@@ -78,12 +84,12 @@
     .live-btn .pulse{content:""; position:absolute; inset:-10px; border-radius:18px; z-index:1; pointer-events:none; box-shadow:0 0 0 0 rgba(0,214,255,.35); animation:pulse 2.4s ease-out infinite}
     @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,214,255,.35)} 70%{box-shadow:0 0 0 16px rgba(0,214,255,0)} 100%{box-shadow:0 0 0 0 rgba(0,214,255,0)}}
     .live-btn:active{ transform:translateY(1px) scale(.99) }
-
     .btn-row{display:grid; grid-template-columns: 1fr auto; gap:12px; align-items:stretch}
     .notify-btn{position:relative; display:inline-grid; place-items:center; gap:4px; padding:8px 12px; border-radius:12px; border:0; background:linear-gradient(135deg,var(--btn1),var(--btn2)); color:#001825; font:700 13px/1 Poppins, sans-serif; letter-spacing:.4px; box-shadow:0 6px 18px var(--btnGlow), inset 0 0 0 1px rgba(255,255,255,.25); cursor:pointer; user-select:none; min-width:92px; min-height:40px}
     .notify-badge{position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 6px; border-radius:999px; display:inline-grid; place-items:center; background:#ff2d55; color:#fff; font:700 12px/1 Poppins; box-shadow:0 0 0 2px rgba(0,0,0,.25), 0 6px 12px rgba(255,45,85,.35)}
     .notify-badge.hidden{display:none}
 
+    /* --- Live Screen --- */
     .live-app{display:none; min-height:100vh; padding:20px; place-content:center; gap:22px; text-align:center}
     .live-title{font:800 22px/1.2 Montserrat; letter-spacing:.6px; padding:.6rem 1rem; border-radius:12px; background:#0A0F1C; box-shadow:0 10px 30px rgba(0,150,255,.12), inset 0 0 0 1px rgba(255,255,255,.08); margin:0 auto}
     .clock-top{ font:700 22px/1 Montserrat; opacity:.95; letter-spacing:.5px; margin:0 auto }
@@ -98,6 +104,7 @@
     .clock-center.status-error{ color:var(--err); text-shadow:0 0 10px rgba(255,0,0,.55) }
     .back{margin-top:10px; display:inline-block; padding:10px 14px; border-radius:12px; border:0; background:linear-gradient(135deg,#1583ff,#35e0ff); color:#001A2A; font:700 14px/1 Poppins; letter-spacing:.6px; box-shadow:0 8px 24px rgba(0,170,255,.45), inset 0 0 0 1px rgba(255,255,255,.25); text-decoration:none; width:max-content; margin-inline:auto}
 
+    /* --- Admin Screen --- */
     .admin-app{min-height:100vh; padding:20px; place-content:center; gap:18px; text-align:center}
     .admin-card{width:min(92vw, 520px); margin-inline:auto; background:#0A0F1C; border-radius:16px; box-shadow:0 10px 30px rgba(0,150,255,.12), inset 0 0 0 1px rgba(255,255,255,.08); padding:18px; display:grid; gap:14px}
     .admin-title{font:800 22px/1.2 Montserrat; margin:0}
@@ -112,7 +119,9 @@
     .btn.warn{ background:linear-gradient(135deg,#ffb300,#ffe082); color:#2a1900 }
     .btn.danger{ background:linear-gradient(135deg,#ff5252,#ff8a80); color:#2a0000 }
     .hint{font-size:12px; color:var(--muted)}
+    .admin-section-title { font: 700 16px Montserrat; margin: 10px 0 0; opacity: 0.9; }
 
+    /* --- Notify Screen --- */
     .notify-app{min-height:100vh; padding:20px; place-content:center; gap:18px; text-align:center}
     .notify-card{width:min(92vw, 520px); background:#0A0F1C; border-radius:16px; box-shadow:0 10px 30px rgba(0,150,255,.12), inset 0 0 0 1px rgba(255,255,255,.08); padding:16px; display:grid; gap:12px; margin-inline:auto}
     .notify-list{display:grid; gap:10px; max-height:50vh; overflow:auto; padding-right:6px}
@@ -121,16 +130,15 @@
     .note .m{font:600 12px/1.4 Poppins; color:#cfe7ff; margin-top:4px; white-space:pre-wrap}
     .note .meta{font:600 11px/1.2 Poppins; color:#98b6d8; margin-top:6px}
 
+    /* --- Misc --- */
     .online-pill{position:fixed; top:10px; right:12px; z-index:4; display:none; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; background:linear-gradient(135deg,#0bbf5f,#1df28a); color:#001b12; font:800 12px/1 Montserrat; letter-spacing:.6px; box-shadow:0 8px 22px rgba(24,212,109,.35), inset 0 0 0 1px rgba(255,255,255,.25)}
-    body.loaded .online-pill{ display:flex; }
+    body.unlocked .online-pill, body.mode-live .online-pill, body.mode-admin .online-pill, body.mode-notify .online-pill { display:flex; }
     .dot{width:8px; height:8px; border-radius:50%; background:#00ff88; box-shadow:0 0 12px #00ff88}
-
-    @media (prefers-reduced-motion: reduce){
-      .ring-arc,.rotor,.live-btn::before,.live-btn .pulse,.led,.ring-blue::after,.aura{animation:none}
-    }
+    @media (prefers-reduced-motion: reduce){ .ring-arc,.rotor,.live-btn::before,.live-btn .pulse,.led,.ring-blue::after,.aura,.user-pin-card.shake {animation:none} }
   </style>
 </head>
 <body>
+  
   <div class="online-pill" id="onlinePill" aria-live="polite"><span class="dot"></span><span id="onlineCount">Online 0</span></div>
 
   <div class="splash" role="status" aria-live="polite">
@@ -142,12 +150,14 @@
     </div>
     <h1>Dr Live Signal</h1>
     <p class="subtitle">Aviator loading…</p>
-    <div class="bottom-wrap" aria-hidden="true">
-      <svg class="wave" viewBox="0 0 1440 320" width="100%" height="120" preserveAspectRatio="none">
-        <defs><linearGradient id="blueWave" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00C6FF" stop-opacity=".35"/><stop offset="50%" stop-color="#1E88E5" stop-opacity=".35"/><stop offset="100%" stop-color="#00E5FF" stop-opacity=".35"/></linearGradient></defs>
-        <path fill="url(#blueWave)" d="M0,192L48,176C96,160,192,128,288,106.7C384,85,480,75,576,106.7C672,139,768,213,864,229.3C960,245,1056,203,1152,186.7C1248,171,1344,181,1392,186.7L1440,192L1440,320L0,320Z"/>
-      </svg>
-      <div class="brand-tag">Powered by Dr Live Signal</div>
+  </div>
+  
+  <!-- NEW: User PIN Gate -->
+  <div class="user-pin-gate" id="userPinGate">
+    <div class="user-pin-card" id="userPinCard">
+      <h2>Enter Access PIN</h2>
+      <input class="input" id="userPinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••">
+      <button class="btn" id="userPinSubmit" type="button">Enter</button>
     </div>
   </div>
 
@@ -187,10 +197,11 @@
     <div class="admin-card">
       <h2 class="admin-title">Admin Panel</h2>
       <div class="pin-wrap" id="pinWrap">
-        <input class="input" id="pinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Enter PIN">
+        <input class="input" id="pinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Enter Admin PIN">
         <button class="btn" id="pinSubmit" type="button">Enter</button>
       </div>
       <div class="admin-form" id="adminForm" style="display:none">
+        <h3 class="admin-section-title">Signal Control</h3>
         <div class="site-group" id="siteGroup" role="group" aria-label="Choose site">
           <button type="button" class="toggle active" data-site="1xbet">1xbet</button>
           <button type="button" class="toggle" data-site="888">888</button>
@@ -207,9 +218,18 @@
           <button class="btn danger" id="btnError" type="button">Error</button>
         </div>
         <hr style="border-color:rgba(255,255,255,.08)">
+        <h3 class="admin-section-title">Notifications</h3>
         <div class="row">
           <input class="input" id="admNotify" type="text" placeholder="Notify message">
           <button class="btn" id="btnSendNotify" type="button">Send</button>
+        </div>
+        <hr style="border-color:rgba(255,255,255,.08)">
+        <!-- NEW: User PIN Control Section -->
+        <h3 class="admin-section-title">User Access PIN (4-Digit)</h3>
+        <input class="input" id="admUserPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Enter 4-digit PIN">
+        <div class="admin-actions">
+            <button class="btn" id="btnSetUserPin" type="button">Activate / Change PIN</button>
+            <button class="btn danger" id="btnRemoveUserPin" type="button">Deactivate PIN</button>
         </div>
         <a class="back" id="backFromAdmin" href="#">← Back</a>
       </div>
@@ -231,16 +251,26 @@
 
   <script>
     // ========= Parse Config (Back4App) =========
+    // ඔබගේ Back4App දත්ත මෙතන යොදන්න
     const PARSE_APP_ID = '1VmZKuMW0kIckcTTwaTf6rGe1JrXCHNa0TjPQfS5';
     const PARSE_JS_KEY = 'IltR97exSvdKlaPsNOXhBqaKFAl7zV4tBCGc6pEh';
     const PARSE_SERVER_URL = 'https://parseapi.back4app.com';
-    const PARSE_LIVEQUERY_URL = `wss://${PARSE_APP_ID}.b4a.io`; // auto
     Parse.initialize(PARSE_APP_ID, PARSE_JS_KEY);
     Parse.serverURL = PARSE_SERVER_URL;
-    Parse.liveQueryServerURL = PARSE_LIVEQUERY_URL;
 
+    // ========= UI Elements =========
+    const splashEl = document.querySelector('.splash');
+    const userPinGate = document.getElementById('userPinGate');
+    const userPinCard = document.getElementById('userPinCard');
+    const userPinInput = document.getElementById('userPinInput');
+    const userPinSubmit = document.getElementById('userPinSubmit');
+    const onlineEl = document.getElementById('onlineCount');
+    const topEl = document.getElementById('clockTop');
+    const centerEl = document.getElementById('clockCenter');
+    const notifyBadge = document.getElementById('notifyBadge');
+    
     // ========= UI base =========
-    const LOGO_SRC = 'LOGO_URL_OR_FILE_HERE';
+    const LOGO_SRC = ''; // Optional
     const BRAND_INITIALS = 'DLS';
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const params = new URLSearchParams(location.search);
@@ -253,40 +283,36 @@
     function showFallback(){ if (fallback) fallback.style.display = 'grid'; }
     function hideFallback(){ if (fallback) fallback.style.display = 'none'; }
     if (img){
-      if (LOGO_SRC && LOGO_SRC !== 'LOGO_URL_OR_FILE_HERE') img.src = LOGO_SRC; else showFallback();
+      if (LOGO_SRC) img.src = LOGO_SRC; else showFallback();
       img.addEventListener('error', showFallback); img.addEventListener('load', hideFallback);
     }
-
-    const onlineEl = document.getElementById('onlineCount');
+    
     function randomOnline(){ return Math.floor(250 + Math.random() * (750 - 250 + 1)); }
     function updateOnline(){ if (onlineEl) onlineEl.textContent = 'Online ' + randomOnline(); }
     setInterval(updateOnline, 10000);
 
-    const topEl = document.getElementById('clockTop');
-    const centerEl = document.getElementById('clockCenter');
     let clockTimerId = null, centerMode='clock';
     function formatLK(){ return new Date().toLocaleTimeString('si-LK',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Colombo'}); }
     function startClock(){ function render(){ const s=formatLK(); if(topEl) topEl.textContent=s; if(centerEl && centerMode==='clock') centerEl.textContent=s; const ms=1000-new Date().getMilliseconds(); clockTimerId=setTimeout(render, prefersReducedMotion?1000:ms+5);} render(); }
     function stopClock(){ if (clockTimerId){ clearTimeout(clockTimerId); clockTimerId=null; } }
 
-    // State
+    // ========= State =========
     const SITES=['1xbet','888','melbet','paripule'];
     const labelToKey={'1X LIVE':'1xbet','MELBET LIVE':'melbet','888 Strz Live':'888','Pari pules Live':'paripule'};
-    const keyToLabel=Object.fromEntries(Object.entries(labelToKey).map(([k,v])=>[v,k]));
     let states={'1xbet':{},'888':{},'melbet':{},'paripule':{}};
     let notes=[];
     let currentLiveLabel='LIVE', currentSiteKey=null;
 
-    // Routing
+    // ========= Routing =========
     const liveTitleEl = document.getElementById('liveTitle');
     function setDocTitle(s){ document.title='Dr Live Signal — '+s; }
-    function enterLive(label='LIVE'){ document.body.classList.remove('mode-admin','mode-notify'); document.body.classList.add('mode-live','loaded'); updateOnline(); currentLiveLabel=label; if(liveTitleEl) liveTitleEl.textContent=label; currentSiteKey=labelToKey[label]||null; setDocTitle(label); stopClock(); startClock(); renderLiveForCurrentSite(); }
+    function enterLive(label='LIVE'){ document.body.classList.remove('mode-admin','mode-notify'); document.body.classList.add('mode-live'); updateOnline(); currentLiveLabel=label; if(liveTitleEl) liveTitleEl.textContent=label; currentSiteKey=labelToKey[label]||null; setDocTitle(label); stopClock(); startClock(); renderLiveForCurrentSite(); }
     function exitLive(){ document.body.classList.remove('mode-live'); setDocTitle('Home'); stopClock(); centerMode='clock'; if(centerEl){ centerEl.className='clock-center'; centerEl.textContent='--:--:--'; } }
-    function enterAdmin(){ document.body.classList.remove('mode-live','mode-notify'); document.body.classList.add('mode-admin','loaded'); updateOnline(); setDocTitle('Admin'); stopClock(); adminAuth=false; showPinGate(true); }
+    function enterAdmin(){ document.body.classList.remove('mode-live','mode-notify'); document.body.classList.add('mode-admin'); updateOnline(); setDocTitle('Admin'); stopClock(); adminAuth=false; showAdminPinGate(true); }
     function exitAdmin(){ document.body.classList.remove('mode-admin'); setDocTitle('Home'); adminAuth=false; }
-    function enterNotify(){ document.body.classList.remove('mode-live','mode-admin'); document.body.classList.add('mode-notify','loaded'); updateOnline(); setDocTitle('Notifications'); stopClock(); setUnread(0); setLastSeen(Date.now()); renderNotifyList(); }
+    function enterNotify(){ document.body.classList.remove('mode-live','mode-admin'); document.body.classList.add('mode-notify'); updateOnline(); setDocTitle('Notifications'); stopClock(); setUnread(0); setLastSeen(Date.now()); renderNotifyList(); }
     function exitNotify(){ document.body.classList.remove('mode-notify'); setDocTitle('Home'); }
-    function pushRoute(view,label){ const url=new URL(window.location.pathname, window.location); if(view==='live'){url.searchParams.set('view','live'); if(label) url.searchParams.set('t',label);} else if(view==='admin'){url.searchParams.set('view','admin');} else if(view==='notify'){url.searchParams.set('view','notify');} history.pushState({view,t:label},'',url.toString()); }
+    function pushRoute(view,label){ const url=new URL(window.location.pathname, window.location.origin); if(view==='live'){url.searchParams.set('view','live'); if(label) url.searchParams.set('t',label);} else if(view==='admin'){url.searchParams.set('view','admin');} else if(view==='notify'){url.searchParams.set('view','notify');} history.pushState({view,t:label},'',url.toString()); }
     function navigate(view,label,push=true){ if(view==='live') enterLive(label); else if(view==='admin') enterAdmin(); else if(view==='notify') enterNotify(); else { exitLive(); exitAdmin(); exitNotify(); } if(push) pushRoute(view,label); }
     document.getElementById('backLink')?.addEventListener('click',e=>{e.preventDefault(); navigate('home');});
     document.getElementById('backFromAdmin')?.addEventListener('click',e=>{e.preventDefault(); navigate('home');});
@@ -297,13 +323,10 @@
     document.getElementById('btnPari')?.addEventListener('click',()=>navigate('live','Pari pules Live',true));
     document.getElementById('btnAdmin')?.addEventListener('click',()=>navigate('admin',undefined,true));
     document.getElementById('notifyBtn')?.addEventListener('click',()=>navigate('notify',undefined,true));
-
-    // Deposit
     const openSafe=url=>{ const w=window.open(url,'_blank','noopener,noreferrer'); if(w) w.opener=null; };
     document.getElementById('btnDeposit')?.addEventListener('click',()=>{ const message='Hello, please share deposit details.'; const waURL=`https://wa.me/94758820091?text=${encodeURIComponent(message)}`; openSafe(waURL); });
 
-    // Notify unread (local)
-    const notifyBadge=document.getElementById('notifyBadge');
+    // ========= Notifications (Local) =========
     const LS_UNREAD='dls_unread', LS_LASTSEEN='dls_notify_lastseen';
     function getUnread(){ return Number(localStorage.getItem(LS_UNREAD)||0); }
     function setUnread(n){ localStorage.setItem(LS_UNREAD,String(n)); renderNotifyBadge(); }
@@ -311,211 +334,158 @@
     function getLastSeen(){ return Number(localStorage.getItem(LS_LASTSEEN)||0); }
     function setLastSeen(ts){ localStorage.setItem(LS_LASTSEEN,String(ts)); }
     function renderNotifyBadge(){ const n=getUnread(); if(!notifyBadge) return; if(n>0){ notifyBadge.textContent=n; notifyBadge.classList.remove('hidden'); } else { notifyBadge.textContent='0'; notifyBadge.classList.add('hidden'); } }
-    renderNotifyBadge();
-
-    // Admin PIN
-    const pinWrap=document.getElementById('pinWrap'), adminForm=document.getElementById('adminForm'), pinInput=document.getElementById('pinInput'), pinSubmit=document.getElementById('pinSubmit'); let adminAuth=false; const ADMIN_PIN='522622';
-    function showPinGate(show){ if(show){ pinWrap.style.display='grid'; adminForm.style.display='none'; pinInput.value=''; } else { pinWrap.style.display='none'; adminForm.style.display='grid'; } }
-    pinSubmit?.addEventListener('click',()=>{ if(pinInput.value===ADMIN_PIN){ adminAuth=true; showPinGate(false);} else alert('Wrong PIN'); });
-
-    // Admin site selector
+    
+    // ========= Admin Panel Logic =========
+    const pinWrap=document.getElementById('pinWrap'), adminForm=document.getElementById('adminForm'), pinInput=document.getElementById('pinInput'), pinSubmit=document.getElementById('pinSubmit');
+    let adminAuth=false; const ADMIN_PIN='522622';
+    function showAdminPinGate(show){ if(show){ pinWrap.style.display='grid'; adminForm.style.display='none'; pinInput.value=''; } else { pinWrap.style.display='none'; adminForm.style.display='grid'; } }
+    pinSubmit?.addEventListener('click',()=>{ if(pinInput.value===ADMIN_PIN){ adminAuth=true; showAdminPinGate(false);} else alert('Wrong Admin PIN'); });
     const siteGroup=document.getElementById('siteGroup'); let adminSite='1xbet';
     siteGroup?.addEventListener('click',e=>{ const btn=e.target.closest('.toggle'); if(!btn) return; siteGroup.querySelectorAll('.toggle').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); adminSite=btn.dataset.site; });
 
-    // Admin inputs
-    const timeInput=document.getElementById('admTime'); const sigInput=document.getElementById('admSignal');
-
-    // Parse helpers (ensure Public read for test)
-    async function upsertSiteState(site,data){
-      const SiteState=Parse.Object.extend('SiteState');
-      const q=new Parse.Query(SiteState); q.equalTo('site',site);
-      const obj=await q.first(); const record=obj||new SiteState(); if(!obj) record.set('site',site);
-      record.set('status',data.status); record.set('time',data.time||null); record.set('signal',data.signal||null);
-      // public read ACL (test). Tighten in prod.
-      const acl = record.getACL() || new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); record.setACL(acl);
-      return record.save();
-    }
-    async function sendNotificationMsg(message){
-      const Notification=Parse.Object.extend('Notification'); const n=new Notification();
-      n.set('message',message);
-      const acl = new Parse.ACL(); acl.setPublicReadAccess(true); acl.setPublicWriteAccess(true); n.setACL(acl);
-      return n.save();
+    // ========= Parse Data Functions =========
+    async function fetchPinConfig() {
+        const q = new Parse.Query('AppConfig');
+        const config = await q.first();
+        if (config) {
+            return { isActive: config.get('isPinActive'), pin: config.get('pinValue') };
+        }
+        return { isActive: false, pin: null }; // Default if no config is set
     }
 
-    async function fetchSiteStates(){
-      const q=new Parse.Query('SiteState'); q.containedIn('site',SITES); q.limit(100);
-      const res=await q.find(); const next={'1xbet':{},'888':{},'melbet':{},'paripule':{}};
-      res.forEach(o=>{ const site=o.get('site'); next[site]={ status:o.get('status')||'normal', time:o.get('time')||'', signal:o.get('signal')||'' }; });
-      states=next; renderLiveForCurrentSite();
-    }
-    async function fetchNotifications(){
-      const q=new Parse.Query('Notification'); q.descending('createdAt'); q.limit(50);
-      const res=await q.find(); notes=res.map(o=>({msg:o.get('message')||'', ts:o.createdAt}));
-      const lastSeen=getLastSeen(); const unread=notes.filter(n=>n.ts && n.ts.getTime()>lastSeen).length; setUnread(unread);
-      if(document.body.classList.contains('mode-notify')) renderNotifyList();
+    async function updatePinConfig(isActive, pin) {
+        const q = new Parse.Query('AppConfig');
+        let config = await q.first();
+        if (!config) {
+            const AppConfig = Parse.Object.extend('AppConfig');
+            config = new AppConfig();
+        }
+        config.set('isPinActive', isActive);
+        if (pin) config.set('pinValue', pin);
+        return config.save();
     }
 
-    // Realtime – LiveQuery + auto-retry + fallback polling + BroadcastChannel
-    let lqConnected=false, siteSub=null, noteSub=null;
-    const poll = { site:null, note:null };
-    const bc = ('BroadcastChannel' in window) ? new BroadcastChannel('dls-realtime') : null;
-    function startPolling(){ if(!poll.site) poll.site=setInterval(fetchSiteStates, 2000); if(!poll.note) poll.note=setInterval(fetchNotifications, 4000); }
+    async function upsertSiteState(site,data){ const SiteState=Parse.Object.extend('SiteState'); const q=new Parse.Query(SiteState); q.equalTo('site',site); const obj=await q.first(); const record=obj||new SiteState(); if(!obj) record.set('site',site); record.set('status',data.status); record.set('time',data.time||null); record.set('signal',data.signal||null); return record.save(); }
+    async function sendNotificationMsg(message){ const Notification=Parse.Object.extend('Notification'); const n=new Notification(); n.set('message',message); return n.save(); }
+    async function fetchSiteStates(){ const q=new Parse.Query('SiteState'); q.containedIn('site',SITES); q.limit(100); const res=await q.find(); const next={'1xbet':{},'888':{},'melbet':{},'paripule':{}}; res.forEach(o=>{ const site=o.get('site'); if(site) next[site]={ status:o.get('status')||'normal', time:o.get('time')||'', signal:o.get('signal')||'' }; }); states=next; renderLiveForCurrentSite(); }
+    async function fetchNotifications(){ const q=new Parse.Query('Notification'); q.descending('createdAt'); q.limit(50); const res=await q.find(); notes=res.map(o=>({msg:o.get('message')||'', ts:o.createdAt})); const lastSeen=getLastSeen(); const unread=notes.filter(n=>n.ts && n.ts.getTime()>lastSeen).length; setUnread(unread); if(document.body.classList.contains('mode-notify')) renderNotifyList(); }
+
+    // ========= Realtime Logic =========
+    let liveQueryClient, siteSub, noteSub; let lqConnected=false; const poll={site:null,note:null}; let resubTimer=null;
+    function startPolling(){ if(!poll.site) poll.site=setInterval(fetchSiteStates, 3000); if(!poll.note) poll.note=setInterval(fetchNotifications, 5000); }
     function stopPolling(){ if(poll.site){clearInterval(poll.site); poll.site=null;} if(poll.note){clearInterval(poll.note); poll.note=null;} }
+    function resubscribeLater(){ if(resubTimer) return; resubTimer=setTimeout(()=>{ resubTimer=null; setupRealtime(true); }, 5000 + Math.random() * 2000); }
+    async function setupRealtime(retry=false){ try{ if (siteSub) await siteSub.unsubscribe(); if (noteSub) await noteSub.unsubscribe(); if (!liveQueryClient || liveQueryClient.state !== 'connected') { liveQueryClient = new Parse.LiveQueryClient({ applicationId: PARSE_APP_ID, serverURL: `wss://${(new URL(PARSE_SERVER_URL)).hostname}`, javascriptKey: PARSE_JS_KEY }); liveQueryClient.open(); } liveQueryClient.on('open', ()=>{ lqConnected=true; stopPolling(); }); liveQueryClient.on('close', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); }); liveQueryClient.on('error', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); }); const siteQuery=new Parse.Query('SiteState'); siteQuery.containedIn('site',SITES); siteSub = await liveQueryClient.subscribe(siteQuery); siteSub.on('create', handleSiteObject); siteSub.on('update', handleSiteObject); siteSub.on('enter', handleSiteObject); siteSub.on('delete', obj=>{ const site=obj.get('site'); if(site){ states[site]={}; if(site===currentSiteKey) renderLiveForCurrentSite(); }}); const noteQuery=new Parse.Query('Notification'); noteSub= await liveQueryClient.subscribe(noteQuery); noteSub.on('create', handleNotificationObj); setTimeout(()=>{ if(!lqConnected) startPolling(); }, 4000); }catch(err){ startPolling(); if (!retry) resubscribeLater(); }}
+    function handleSiteObject(obj){ const site=obj.get('site'); if(!site) return; states[site]={ status:obj.get('status')||'normal', time:obj.get('time')||'', signal:obj.get('signal')||'' }; if(site===currentSiteKey) renderLiveForCurrentSite(); }
+    function handleNotificationObj(obj){ const msg=obj.get('message')||''; const ts=obj.createdAt||new Date(); notes.unshift({msg, ts}); if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); } else { incUnread(); }}
 
-    Parse.LiveQuery.on('open', ()=>{ lqConnected=true; stopPolling(); });
-    Parse.LiveQuery.on('close', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
-    Parse.LiveQuery.on('error', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
+    // ========= Admin Actions =========
+    async function performAdminAction(action, data) { if (!adminAuth) return alert('Enter Admin PIN'); const site = adminSite; try { await action(site, data); const newState = { status: data.status, time: data.time || '', signal: data.signal || '' }; states[site] = newState; if (site === currentSiteKey) renderLiveForCurrentSite(); alert(`Action '${data.status}' successful for ${site}`); } catch (e) { console.error(e); alert('Action failed'); }}
+    document.getElementById('btnUpload')?.addEventListener('click', () => performAdminAction(upsertSiteState, { status: 'normal', time: document.getElementById('admTime').value || '--:--:--', signal: (document.getElementById('admSignal').value || '').trim() }));
+    document.getElementById('btnError')?.addEventListener('click', () => performAdminAction(upsertSiteState, { status: 'error' }));
+    document.getElementById('btnWait')?.addEventListener('click', () => performAdminAction(upsertSiteState, { status: 'wait' }));
+    document.getElementById('btnSendNotify')?.addEventListener('click', async()=>{ if(!adminAuth) return alert('Enter Admin PIN'); const admNotify = document.getElementById('admNotify'); const msg=(admNotify.value||'').trim(); if(!msg) return alert('Type a message'); try{ await sendNotificationMsg(msg); admNotify.value=''; notes.unshift({msg, ts:new Date()}); if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); } else incUnread(); alert('Notification sent'); }catch(e){ console.error(e); alert('Send failed'); }});
 
-    let resubTimer=null;
-    function resubscribeLater(){ if(resubTimer) return; resubTimer=setTimeout(()=>{ resubTimer=null; setupRealtime(true); }, 3000); }
+    // NEW: User PIN Admin Actions
+    document.getElementById('btnSetUserPin')?.addEventListener('click', async () => {
+        if (!adminAuth) return alert('Enter Admin PIN');
+        const pinValue = document.getElementById('admUserPin').value;
+        if (!/^\d{4}$/.test(pinValue)) {
+            return alert('Please enter a valid 4-digit PIN.');
+        }
+        try {
+            await updatePinConfig(true, pinValue);
+            alert('User PIN has been activated/changed successfully.');
+            document.getElementById('admUserPin').value = '';
+        } catch (e) {
+            console.error(e);
+            alert('Failed to set User PIN.');
+        }
+    });
 
-    async function setupRealtime(retry=false){
-      try{
-        // Unsubscribe old (if any)
-        await siteSub?.unsubscribe(); await noteSub?.unsubscribe();
-      }catch(e){}
-      try{
-        const siteQuery=new Parse.Query('SiteState'); siteQuery.containedIn('site',SITES);
-        siteSub=await siteQuery.subscribe();
-        siteSub.on('open', ()=>{ lqConnected=true; stopPolling(); });
-        siteSub.on('create', handleSiteObject);
-        siteSub.on('update', handleSiteObject);
-        siteSub.on('enter',  handleSiteObject);
-        siteSub.on('delete', obj=>{ const site=obj.get('site'); if(site){ states[site]={}; if(site===currentSiteKey) renderLiveForCurrentSite(); }});
-        siteSub.on('close', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
-        siteSub.on('error', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
+    document.getElementById('btnRemoveUserPin')?.addEventListener('click', async () => {
+        if (!adminAuth) return alert('Enter Admin PIN');
+        try {
+            await updatePinConfig(false, null);
+            alert('User PIN has been deactivated successfully.');
+        } catch (e) {
+            console.error(e);
+            alert('Failed to deactivate User PIN.');
+        }
+    });
 
-        const noteQuery=new Parse.Query('Notification');
-        noteSub=await noteQuery.subscribe();
-        noteSub.on('open', ()=>{ lqConnected=true; stopPolling(); });
-        noteSub.on('create', handleNotificationObj);
-        noteSub.on('close', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
-        noteSub.on('error', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); });
+    // ========= UI Rendering & Page Logic =========
+    function renderNotifyList(){ const wrap=document.getElementById('notifyList'); if(!wrap) return; wrap.innerHTML = notes.length ? '' : '<div class="note"><div class="t">No notifications</div></div>'; for(const it of notes){ const dt=it.ts? new Date(it.ts).toLocaleString('si-LK') : ''; const el=document.createElement('div'); el.className='note'; el.innerHTML = `<div class="t">Notification</div><div class="m">${escapeHtml(it.msg)}</div><div class="meta">${dt}</div>`; wrap.appendChild(el); }}
+    function renderLiveForCurrentSite(){ const el=centerEl; if(!el) return; el.className='clock-center'; const key=currentSiteKey; const st=key?(states[key]||{}):{}; if(!key || Object.keys(st).length===0){ centerMode='clock'; return; } if(st.status==='error'){ centerMode='message'; el.classList.add('status-error'); el.textContent='System Error'; } else if(st.status==='wait'){ centerMode='message'; el.classList.add('status-wait'); el.textContent='Next Signal Wait'; } else{ centerMode='message'; el.classList.add('status-normal'); const tt=st.time||'--:--:--'; const ss=st.signal||''; el.textContent=`${tt}\n${ss}`; }}
+    function escapeHtml(str){ const div=document.createElement('div'); div.textContent=str; return div.innerHTML; }
+    document.getElementById('btnEnablePush')?.addEventListener('click', async()=>{ try{ if(!('Notification' in window)) return alert('Notifications are not supported.'); if(!window.isSecureContext) return alert('Please use HTTPS.'); let perm=Notification.permission; if(perm==='default') perm=await Notification.requestPermission(); if(perm==='granted') new Notification('Push enabled',{ body:'You will receive live updates.' }); else if(perm==='denied') alert('Notifications are blocked.'); }catch(e){ console.error(e); }});
 
-        // If we still don't get an open in 3s, start polling
-        setTimeout(()=>{ if(!lqConnected) startPolling(); }, 3000);
-      }catch(err){
-        // LiveQuery failed -> fallback
-        startPolling();
-        if (!retry) resubscribeLater();
-      }
+    // ========= NEW: App Unlock and Initialization Flow =========
+    function unlockAppAndProceed() {
+        document.body.classList.add('unlocked');
+        
+        const isLiveView=initialView==='live', isAdminView=initialView==='admin', isNotifyView=initialView==='notify';
+        const state = { view: initialView, t: initialLabel };
+        
+        if(isLiveView){ enterLive(initialLabel); }
+        else if(isAdminView){ enterAdmin(); }
+        else if(isNotifyView){ enterNotify(); }
+        else { exitLive(); exitAdmin(); exitNotify(); state.view = 'home'; }
+        
+        if (state.view === 'home') {
+            const delay = prefersReducedMotion ? 100 : 800;
+            setTimeout(()=>{ document.getElementById('btn1x')?.focus({preventScroll:true}); }, delay);
+        }
+        
+        updateOnline();
+        history.replaceState(state, '', window.location.href);
+
+        // Fetch other data after unlocking
+        Promise.all([fetchSiteStates(), fetchNotifications()]).then(() => {
+            setupRealtime();
+            renderNotifyBadge();
+        });
     }
 
-    function handleSiteObject(obj){
-      const site=obj.get('site'); if(!site) return;
-      states[site]={ status:obj.get('status')||'normal', time:obj.get('time')||'', signal:obj.get('signal')||'' };
-      if(site===currentSiteKey) renderLiveForCurrentSite();
+    async function init() {
+        let pinConfig;
+        try {
+            pinConfig = await fetchPinConfig();
+        } catch (e) {
+            console.error("Could not fetch PIN config, proceeding without lock.", e);
+            pinConfig = { isActive: false };
+        }
+        
+        document.body.classList.add('loaded');
+        splashEl.style.display = 'none';
+
+        if (pinConfig.isActive) {
+            userPinGate.classList.add('visible');
+            userPinInput.focus();
+            
+            const handlePinSubmit = () => {
+                if (userPinInput.value === pinConfig.pin) {
+                    userPinGate.classList.remove('visible');
+                    unlockAppAndProceed();
+                } else {
+                    userPinCard.classList.add('shake');
+                    userPinInput.value = '';
+                    setTimeout(() => userPinCard.classList.remove('shake'), 500);
+                }
+            };
+            userPinSubmit.addEventListener('click', handlePinSubmit);
+            userPinInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handlePinSubmit();
+            });
+
+        } else {
+            unlockAppAndProceed();
+        }
     }
-    function handleNotificationObj(obj){
-      const msg=obj.get('message')||''; const ts=obj.createdAt||new Date();
-      notes.unshift({msg, ts});
-      if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); }
-      else incUnread();
-    }
-
-    // BroadcastChannel (instant same-origin tabs)
-    bc?.addEventListener('message', ev=>{
-      const d=ev.data||{};
-      if(d.type==='site' && d.site){
-        states[d.site]={ status:d.data.status, time:d.data.time||'', signal:d.data.signal||'' };
-        if(d.site===currentSiteKey) renderLiveForCurrentSite();
-      }
-      if(d.type==='note' && d.msg){
-        const item={ msg:d.msg, ts:new Date() };
-        notes.unshift(item);
-        if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); }
-        else incUnread();
-      }
-    });
-
-    // Admin actions
-    document.getElementById('btnUpload')?.addEventListener('click', async()=>{
-      if(!adminAuth) return alert('Enter PIN');
-      const t=timeInput.value||'--:--:--'; const s=(sigInput.value||'').trim();
-      try{
-        await upsertSiteState(adminSite,{status:'normal',time:t,signal:s});
-        // Local instant update
-        states[adminSite]={status:'normal',time:t,signal:s};
-        if(adminSite===currentSiteKey) renderLiveForCurrentSite();
-        bc?.postMessage({type:'site', site:adminSite, data:{status:'normal',time:t,signal:s}});
-        alert('Uploaded');
-      }catch(e){ console.error(e); alert('Upload failed'); }
-    });
-    document.getElementById('btnError')?.addEventListener('click', async()=>{
-      if(!adminAuth) return alert('Enter PIN');
-      try{
-        await upsertSiteState(adminSite,{status:'error'});
-        states[adminSite]={status:'error',time:'',signal:''};
-        if(adminSite===currentSiteKey) renderLiveForCurrentSite();
-        bc?.postMessage({type:'site', site:adminSite, data:{status:'error'}});
-        alert('Set ERROR');
-      }catch(e){ console.error(e); alert('Error set failed'); }
-    });
-    document.getElementById('btnWait')?.addEventListener('click', async()=>{
-      if(!adminAuth) return alert('Enter PIN');
-      try{
-        await upsertSiteState(adminSite,{status:'wait'});
-        states[adminSite]={status:'wait',time:'',signal:''};
-        if(adminSite===currentSiteKey) renderLiveForCurrentSite();
-        bc?.postMessage({type:'site', site:adminSite, data:{status:'wait'}});
-        alert('Set WAIT');
-      }catch(e){ console.error(e); alert('Wait set failed'); }
-    });
-    document.getElementById('btnSendNotify')?.addEventListener('click', async()=>{
-      if(!adminAuth) return alert('Enter PIN');
-      const msg=(document.getElementById('admNotify').value||'').trim(); if(!msg) return alert('Type a message');
-      try{
-        await sendNotificationMsg(msg);
-        document.getElementById('admNotify').value='';
-        // Local instant + Broadcast
-        notes.unshift({msg, ts:new Date()});
-        if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); } else incUnread();
-        bc?.postMessage({type:'note', msg});
-        alert('Notification sent');
-      }catch(e){ console.error(e); alert('Send failed'); }
-    });
-
-    // Notify page
-    document.getElementById('btnEnablePush')?.addEventListener('click', async()=>{
-      try{
-        if(!('Notification' in window)) return alert('Notifications are not supported on this browser.');
-        if(!isSecureContext) return alert('Please use HTTPS to enable notifications.');
-        let perm=Notification.permission; if(perm==='default') perm=await Notification.requestPermission();
-        if(perm==='granted') new Notification('Push enabled',{ body:'You will receive live updates.' });
-        else if(perm==='denied') alert('Notifications are blocked in browser settings.');
-      }catch(e){ console.error(e); }
-    });
-    function renderNotifyList(){
-      const wrap=document.getElementById('notifyList'); if(!wrap) return;
-      wrap.innerHTML = notes.length ? '' : '<div class="note"><div class="t">No notifications</div></div>';
-      for(const it of notes){
-        const dt=it.ts? new Date(it.ts).toLocaleString('si-LK') : '';
-        const el=document.createElement('div'); el.className='note';
-        el.innerHTML = `<div class="t">Notify</div><div class="m">${escapeHtml(it.msg)}</div><div class="meta">${dt}</div>`;
-        wrap.appendChild(el);
-      }
-    }
-
-    // Live ring
-    function renderLiveForCurrentSite(){
-      const el=centerEl; if(!el) return; el.className='clock-center';
-      const key=currentSiteKey; const st=key?(states[key]||{}):{};
-      if(!key || Object.keys(st).length===0){ centerMode='clock'; el.textContent='--:--:--'; return; }
-      if(st.status==='error'){ centerMode='message'; el.classList.add('status-error'); el.textContent='System Error'; }
-      else if(st.status==='wait'){ centerMode='message'; el.classList.add('status-wait'); el.textContent='Next Signal Wait'; }
-      else{ centerMode='message'; el.classList.add('status-normal'); const tt=st.time||'--:--:--'; const ss=st.signal||''; el.textContent=`${tt}\n${ss}`; }
-    }
-    function escapeHtml(str){ return String(str).replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s])); }
-
-    // Initial route + data
-    async function initData(){ await fetchSiteStates(); await fetchNotifications(); await setupRealtime(); }
-    const isLiveView=initialView==='live', isAdminView=initialView==='admin', isNotifyView=initialView==='notify';
-    if(isLiveView){ enterLive(initialLabel); document.body.classList.add('loaded'); history.replaceState({view:'live',t:initialLabel},'',window.location.href); }
-    else if(isAdminView){ enterAdmin(); document.body.classList.add('loaded'); history.replaceState({view:'admin'},'',window.location.href); }
-    else if(isNotifyView){ enterNotify(); document.body.classList.add('loaded'); history.replaceState({view:'notify'},'',window.location.href); }
-    else{ const splashDelay=window.matchMedia('(prefers-reduced-motion: reduce)').matches?800:2400; setTimeout(()=>{ document.body.classList.add('loaded'); updateOnline(); document.getElementById('btn1x')?.focus({preventScroll:true}); }, splashDelay); history.replaceState({view:'home'},'',window.location.pathname); }
-    window.addEventListener('popstate',e=>{ const st=e.state; if(st?.view==='live') enterLive(st.t||'LIVE'); else if(st?.view==='admin') enterAdmin(); else if(st?.view==='notify') enterNotify(); else { exitLive(); exitAdmin(); exitNotify(); } });
-    initData();
+    
+    window.addEventListener('popstate',e=>{ const st=e.state||{view:'home'}; if(st?.view==='live') enterLive(st.t||'LIVE'); else if(st?.view==='admin') enterAdmin(); else if(st?.view==='notify') enterNotify(); else { exitLive(); exitAdmin(); exitNotify(); } });
+    
+    document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
