@@ -251,9 +251,9 @@
 
   <script>
     // ========= Parse Config (Back4App) =========
-    // ඔබගේ Back4App දත්ත මෙතන යොදන්න
-    const PARSE_APP_ID = '1VmZKuMW0kIckcTTwaTf6rGe1JrXCHNa0TjPQfS5';
-    const PARSE_JS_KEY = 'IltR97exSvdKlaPsNOXhBqaKFAl7zV4tBCGc6pEh';
+    // ඔබගේ අලුත් Back4App දත්ත මෙතනට යොදවා ඇත
+    const PARSE_APP_ID = '0Y9bsgpfjLSNxXlQdu0fnExs2EnWProBm3IPS9gg'; // <-- ඔබගේ අලුත් APP ID එක
+    const PARSE_JS_KEY = 'wzlZQjyt8Y6iaUYb0zHgoiV47bagmPKP1yNUBVrm'; // <-- ඔබගේ අලුත් JAVASCRIPT KEY එක
     const PARSE_SERVER_URL = 'https://parseapi.back4app.com';
     Parse.initialize(PARSE_APP_ID, PARSE_JS_KEY);
     Parse.serverURL = PARSE_SERVER_URL;
@@ -361,7 +361,7 @@
             config = new AppConfig();
         }
         config.set('isPinActive', isActive);
-        if (pin) config.set('pinValue', pin);
+        config.set('pinValue', pin); 
         return config.save();
     }
 
@@ -375,16 +375,16 @@
     function startPolling(){ if(!poll.site) poll.site=setInterval(fetchSiteStates, 3000); if(!poll.note) poll.note=setInterval(fetchNotifications, 5000); }
     function stopPolling(){ if(poll.site){clearInterval(poll.site); poll.site=null;} if(poll.note){clearInterval(poll.note); poll.note=null;} }
     function resubscribeLater(){ if(resubTimer) return; resubTimer=setTimeout(()=>{ resubTimer=null; setupRealtime(true); }, 5000 + Math.random() * 2000); }
-    async function setupRealtime(retry=false){ try{ if (siteSub) await siteSub.unsubscribe(); if (noteSub) await noteSub.unsubscribe(); if (!liveQueryClient || liveQueryClient.state !== 'connected') { liveQueryClient = new Parse.LiveQueryClient({ applicationId: PARSE_APP_ID, serverURL: `wss://${(new URL(PARSE_SERVER_URL)).hostname}`, javascriptKey: PARSE_JS_KEY }); liveQueryClient.open(); } liveQueryClient.on('open', ()=>{ lqConnected=true; stopPolling(); }); liveQueryClient.on('close', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); }); liveQueryClient.on('error', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); }); const siteQuery=new Parse.Query('SiteState'); siteQuery.containedIn('site',SITES); siteSub = await liveQueryClient.subscribe(siteQuery); siteSub.on('create', handleSiteObject); siteSub.on('update', handleSiteObject); siteSub.on('enter', handleSiteObject); siteSub.on('delete', obj=>{ const site=obj.get('site'); if(site){ states[site]={}; if(site===currentSiteKey) renderLiveForCurrentSite(); }}); const noteQuery=new Parse.Query('Notification'); noteSub= await liveQueryClient.subscribe(noteQuery); noteSub.on('create', handleNotificationObj); setTimeout(()=>{ if(!lqConnected) startPolling(); }, 4000); }catch(err){ startPolling(); if (!retry) resubscribeLater(); }}
+    async function setupRealtime(retry=false){ try{ if (siteSub) await siteSub.unsubscribe(); if (noteSub) await noteSub.unsubscribe(); if (!liveQueryClient || liveQueryClient.state !== 'connected') { liveQueryClient = new Parse.LiveQueryClient({ applicationId: PARSE_APP_ID, serverURL: `wss://${(new URL(PARSE_SERVER_URL)).hostname}`, javascriptKey: PARSE_JS_KEY }); liveQueryClient.open(); } liveQueryClient.on('open', ()=>{ lqConnected=true; stopPolling(); console.log('LiveQuery connected!'); }); liveQueryClient.on('close', ()=>{ lqConnected=false; startPolling(); resubscribeLater(); console.log('LiveQuery disconnected.'); }); liveQueryClient.on('error', (err)=>{ lqConnected=false; startPolling(); resubscribeLater(); console.error('LiveQuery error:', err); }); const siteQuery=new Parse.Query('SiteState'); siteQuery.containedIn('site',SITES); siteSub = await liveQueryClient.subscribe(siteQuery); siteSub.on('create', handleSiteObject); siteSub.on('update', handleSiteObject); siteSub.on('enter', handleSiteObject); siteSub.on('delete', obj=>{ const site=obj.get('site'); if(site){ states[site]={}; if(site===currentSiteKey) renderLiveForCurrentSite(); }}); const noteQuery=new Parse.Query('Notification'); noteSub= await liveQueryClient.subscribe(noteQuery); noteSub.on('create', handleNotificationObj); setTimeout(()=>{ if(!lqConnected) startPolling(); }, 4000); }catch(err){ startPolling(); if (!retry) resubscribeLater(); console.error('Failed to setup LiveQuery:', err); }}
     function handleSiteObject(obj){ const site=obj.get('site'); if(!site) return; states[site]={ status:obj.get('status')||'normal', time:obj.get('time')||'', signal:obj.get('signal')||'' }; if(site===currentSiteKey) renderLiveForCurrentSite(); }
     function handleNotificationObj(obj){ const msg=obj.get('message')||''; const ts=obj.createdAt||new Date(); notes.unshift({msg, ts}); if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); } else { incUnread(); }}
 
     // ========= Admin Actions =========
-    async function performAdminAction(action, data) { if (!adminAuth) return alert('Enter Admin PIN'); const site = adminSite; try { await action(site, data); const newState = { status: data.status, time: data.time || '', signal: data.signal || '' }; states[site] = newState; if (site === currentSiteKey) renderLiveForCurrentSite(); alert(`Action '${data.status}' successful for ${site}`); } catch (e) { console.error(e); alert('Action failed'); }}
+    async function performAdminAction(action, data) { if (!adminAuth) return alert('Enter Admin PIN'); const site = adminSite; try { await action(site, data); const newState = { status: data.status, time: data.time || '', signal: data.signal || '' }; states[site] = newState; if (site === currentSiteKey) renderLiveForCurrentSite(); alert(`Action '${data.status}' successful for ${site}`); } catch (e) { console.error("Admin Action Failed:", e); alert('Action failed. Check console for details.'); }}
     document.getElementById('btnUpload')?.addEventListener('click', () => performAdminAction(upsertSiteState, { status: 'normal', time: document.getElementById('admTime').value || '--:--:--', signal: (document.getElementById('admSignal').value || '').trim() }));
     document.getElementById('btnError')?.addEventListener('click', () => performAdminAction(upsertSiteState, { status: 'error' }));
     document.getElementById('btnWait')?.addEventListener('click', () => performAdminAction(upsertSiteState, { status: 'wait' }));
-    document.getElementById('btnSendNotify')?.addEventListener('click', async()=>{ if(!adminAuth) return alert('Enter Admin PIN'); const admNotify = document.getElementById('admNotify'); const msg=(admNotify.value||'').trim(); if(!msg) return alert('Type a message'); try{ await sendNotificationMsg(msg); admNotify.value=''; notes.unshift({msg, ts:new Date()}); if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); } else incUnread(); alert('Notification sent'); }catch(e){ console.error(e); alert('Send failed'); }});
+    document.getElementById('btnSendNotify')?.addEventListener('click', async()=>{ if(!adminAuth) return alert('Enter Admin PIN'); const admNotify = document.getElementById('admNotify'); const msg=(admNotify.value||'').trim(); if(!msg) return alert('Type a message'); try{ await sendNotificationMsg(msg); admNotify.value=''; notes.unshift({msg, ts:new Date()}); if(document.body.classList.contains('mode-notify')){ renderNotifyList(); setLastSeen(Date.now()); } else incUnread(); alert('Notification sent'); }catch(e){ console.error("Notification Send Failed:", e); alert('Send failed. Check console.'); }});
 
     // NEW: User PIN Admin Actions
     document.getElementById('btnSetUserPin')?.addEventListener('click', async () => {
@@ -398,8 +398,8 @@
             alert('User PIN has been activated/changed successfully.');
             document.getElementById('admUserPin').value = '';
         } catch (e) {
-            console.error(e);
-            alert('Failed to set User PIN.');
+            console.error("Set User PIN Failed:", e);
+            alert('Failed to set User PIN. Check console.');
         }
     });
 
@@ -409,8 +409,8 @@
             await updatePinConfig(false, null);
             alert('User PIN has been deactivated successfully.');
         } catch (e) {
-            console.error(e);
-            alert('Failed to deactivate User PIN.');
+            console.error("Remove User PIN Failed:", e);
+            alert('Failed to deactivate User PIN. Check console.');
         }
     });
 
@@ -423,27 +423,24 @@
     // ========= NEW: App Unlock and Initialization Flow =========
     function unlockAppAndProceed() {
         document.body.classList.add('unlocked');
-        
         const isLiveView=initialView==='live', isAdminView=initialView==='admin', isNotifyView=initialView==='notify';
         const state = { view: initialView, t: initialLabel };
-        
         if(isLiveView){ enterLive(initialLabel); }
         else if(isAdminView){ enterAdmin(); }
         else if(isNotifyView){ enterNotify(); }
         else { exitLive(); exitAdmin(); exitNotify(); state.view = 'home'; }
-        
         if (state.view === 'home') {
             const delay = prefersReducedMotion ? 100 : 800;
             setTimeout(()=>{ document.getElementById('btn1x')?.focus({preventScroll:true}); }, delay);
         }
-        
         updateOnline();
         history.replaceState(state, '', window.location.href);
-
-        // Fetch other data after unlocking
         Promise.all([fetchSiteStates(), fetchNotifications()]).then(() => {
             setupRealtime();
             renderNotifyBadge();
+        }).catch(err => {
+            console.error("Failed to fetch initial data:", err);
+            alert("Could not connect to the server. Please check your connection and Back4App setup.");
         });
     }
 
@@ -452,14 +449,16 @@
         try {
             pinConfig = await fetchPinConfig();
         } catch (e) {
-            console.error("Could not fetch PIN config, proceeding without lock.", e);
-            pinConfig = { isActive: false };
+            console.error("Could not fetch PIN config. Check Back4App setup and permissions for 'AppConfig' class.", e);
+            document.querySelector('.splash .subtitle').textContent = "Configuration Error!";
+            alert("Error: Could not retrieve app configuration. Please check your Back4App keys and Class permissions.");
+            return;
         }
         
         document.body.classList.add('loaded');
         splashEl.style.display = 'none';
 
-        if (pinConfig.isActive) {
+        if (pinConfig.isActive && pinConfig.pin) {
             userPinGate.classList.add('visible');
             userPinInput.focus();
             
